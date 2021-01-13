@@ -1,0 +1,223 @@
+---
+title: 'Modelling Competition: Credit Scoring'
+author: "Cesar Conejo Villalobos - Xavier Bryant (Group glmnet)"
+date: "20/11/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE)
+knitr::opts_chunk$set(set.seed(42))
+knitr::opts_chunk$set(fig.width=6, fig.height=3)
+
+load("rda/df.rda")
+#load('rda/dfLightVersion.rda')
+
+load("rda/calibrated_models.rda")
+
+source('functions/draw_functions.R')
+
+library(knitr)
+library(caret)
+library(dplyr)
+library(ggplot2)
+library(GGally)
+
+```
+
+## 1. Introduction
+
+Talk about credit scoring in general, why it is important?
+
+Regression models for credit scoring. Advantanges (Easy to calibrated)
+
+Trade-off Prediction power vs statistical Inference and interpretability.
+
+Key metrics:
+
+* Global Accuracy (General Predicted Power of the model)
+
+* Bad customers sensitivity: In order to lower the risk, the focus of the models must be detect the biggest possible number of bad customers
+
+* Number of good customer mis-classification (Nominal number of good customer predicted as bad customers)
+
+## 2. Description Data set
+Data consists of 1000 observations of past applicant, with 70% of the data set classified as good customer and 30% as bad customers. The original dataset has 30 predictor variables, but under some tranformations the data set consists of 20 predictor variables (+ 1 columnf for the response)
+
+Predictor variables can be classified into four groups
+
+1. Social Background
+
+```{r echo=FALSE}
+social <- c('AGE','NUM_DEPENDENTS','MALE_STATUS','PRESENT_RESIDENT','FOREIGN','JOB','TELEPHONE')
+#summary(df[,social])
+knitr::kable(summary(df[,social]))
+```
+
+2. Economic Background
+
+```{r echo=FALSE}
+economics <- c('CHK_ACCT','SAV_ACCT','EMPLOYMENT','PROP_RSTATE','RESIDENCE')
+knitr::kable(summary(df[,economics]))
+```
+
+3. Credit Products
+
+```{r echo=FALSE}
+cred_prod <- c('DURATION','AMOUNT','INSTALL_RATE','PURPOSE_CREDIT','GUARANTEES')
+knitr::kable(summary(df[,cred_prod]))
+```
+
+4. Credit History
+
+```{r echo=FALSE}
+cred_hist <- c('HISTORY','NUM_CREDITS','OTHER_INSTALL')
+knitr::kable(summary(df[,cred_hist]))
+```
+
+5. Response
+
+```{r echo=FALSE}
+knitr::kable(summary(df$RESPONSE))
+```
+
+
+## 3. Exploratory Analysis
+
+Plots that the variables are relevant
+
+```{r plot1, fig.cap = "Important Variable Applicants credit history\\label{fig:plot1}", echo=FALSE}
+require(gridExtra)
+plot1 <- ggplot(df,aes(x=HISTORY,fill= RESPONSE)) +
+  geom_bar(stat="count") +
+  labs(title = "Distribution of Credit History") +
+  scale_fill_manual(values=c("red3", "steelblue")) +
+  theme_minimal()
+plot2 <- ggplot(df,aes(x=NUM_CREDITS,fill= RESPONSE)) +
+  geom_bar(stat="count") +
+  labs(title = "Distribution of Number of Credits") +
+  scale_fill_manual(values=c("red3", "steelblue")) +
+  theme_minimal()
+grid.arrange(plot1, plot2, ncol=2)
+```
+
+
+```{r plot2, fig.cap = "Important Variable Applicants Economic Backgorund\\label{fig:plot2}", echo=FALSE}
+require(gridExtra)
+plot1 <-ggplot(df, aes(x=CHK_ACCT, fill = RESPONSE)) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = scales::percent)  +
+  labs(title = "Distribution of SAV_ACCT") +
+  scale_fill_manual(values=c("red3", "steelblue")) +
+  theme_minimal()
+plot2 <-ggplot(df, aes(x=SAV_ACCT, fill = RESPONSE)) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = scales::percent)  +
+  labs(title = "Distribution of SAV_ACCT") +
+  scale_fill_manual(values=c("red3", "steelblue")) +
+  theme_minimal()
+grid.arrange(plot1, plot2, ncol=2)
+```
+
+
+\newpage
+
+
+## 4. Modeling Fitting
+
+4.1 Spliting dataset training and testing
+
+```{r}
+set.seed(42)
+trainRowNos <- createDataPartition(df$RESPONSE, p = 0.8, list = FALSE)
+trainData <- df[trainRowNos,]
+testData <- df[-trainRowNos,]
+rm(df,trainRowNos)
+```
+
+4.2 Prepocessing training set (Candidates models calibration)
+
+* Fist, using trainData for looking the best subset of predictors. LRT works, AIC did noc converge
+
+
+Then, all models were calibrated using Cross-validation (Caret package)
+
+4.2.1 Base Line Model Logistic regression (simple: all variables without interactions)
+
+4.2.2. Ridge regression  Variable contributes mores to the model
+
+4.2.3. Best subset of predictor with lrt 
+
+```{r}
+model1_baseline <- calibrated_models[[1]]
+model2_ridge <- calibrated_models[[2]]
+model4_LRT <- calibrated_models[[3]]
+
+##*******************************
+# Model 1. bASElINE
+##*******************************
+model1_baseline.Pred.train <- predict(model1_baseline, trainData)
+cm.model1_baseline.train <- confusionMatrix(model1_baseline.Pred.train, trainData$RESPONSE)
+
+##*******************************
+# Model 2. ridge
+##*******************************
+model2_ridge.Pred.train <- predict(model2_ridge, trainData)
+cm.model2_ridge.train <- confusionMatrix(model2_ridge.Pred.train, trainData$RESPONSE)
+
+##*******************************
+## Model 4. LRT
+##*******************************
+model4_LRT.Pred.train <- predict(model4_LRT, trainData)
+cm.model4_LRT.train <- confusionMatrix(model4_LRT.Pred.train, trainData$RESPONSE)
+
+```
+
+
+```{r}
+draw_confusion_matrix(cm = cm.model1_baseline.train, Class1 = "Bad", Class2 = "Good",title_def = 'Confusion Matrix: Baseline')
+draw_confusion_matrix(cm = cm.model2_ridge.train, Class1 = "Bad", Class2 = "Good",title_def = 'Confusion Matrix: Ridge')
+draw_confusion_matrix(cm = cm.model4_LRT.train, Class1 = "Bad", Class2 = "Good",title_def = 'Confusion Matrix: Subset LRT')
+```
+
+
+4.3 Testing the models (with testData)
+
+4.3.1. Predictions / CM (Predicting power - Misclassificattion rate)
+
+```{r}
+##*******************************
+## Model 1: Baseline
+##*******************************
+
+
+model1_baseline.Pred.test <- predict(model1_baseline, testData)
+cm.model1_baseline.test <- confusionMatrix(model1_baseline.Pred.test, testData$RESPONSE)
+
+
+##*******************************
+## Model 2: Ridge
+##*******************************
+
+model2_ridge.Pred.test <- predict(model2_ridge, testData)
+cm.model2_ridge.test <- confusionMatrix(model2_ridge.Pred.test, testData$RESPONSE)
+
+##*******************************
+# Model 4: Fitted with LRT
+##*******************************
+
+model4_LRT.Pred.test <- predict(model4_LRT, testData)
+cm.model4_LRT.test <- confusionMatrix(model4_LRT.Pred.test, testData$RESPONSE)
+
+draw_confusion_matrix(cm = cm.model1_baseline.test, Class1 = "Bad", Class2 = "Good", title_def = 'Confusion Matrix: Ridge Test')
+draw_confusion_matrix(cm = cm.model2_ridge.test, Class1 = "Bad", Class2 = "Good", title_def = 'Confusion Matrix: Ridge Test')
+draw_confusion_matrix(cm = cm.model4_LRT.test, Class1 = "Bad", Class2 = "Good", title_def = 'Confusion Matrix: LRT Test')
+
+
+```
+
+## 5. Conclusions
+
+
+
+
