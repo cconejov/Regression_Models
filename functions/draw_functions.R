@@ -14,9 +14,9 @@ draw_confusion_matrix <- function(cm, Class1, Class2, title_def = 'Confusion Mat
   
   # create the matrix 
   rect(150, 430, 240, 370, col='#3F97D0')
-  text(195, 435, Class1, cex=1.2)
+  text(195, 445, Class1, cex=1.2)
   rect(250, 430, 340, 370, col='#F7AD50')
-  text(295, 435, Class2, cex=1.2)
+  text(295, 445, Class2, cex=1.2)
   text(125, 370, 'Predicted', cex=1.3, srt=90, font=2)
   text(245, 450, 'Actual', cex=1.3, font=2)
   rect(150, 305, 240, 365, col='#F7AD50')
@@ -33,25 +33,21 @@ draw_confusion_matrix <- function(cm, Class1, Class2, title_def = 'Confusion Mat
   
   # add in the specifics 
   plot(c(100, 0), c(100, 0), type = "n", xlab="", ylab="", main = "DETAILS", xaxt='n', yaxt='n')
-  text(10, 85, names(cm$byClass[1]), cex=1.2, font=2)
-  text(10, 70, round(as.numeric(cm$byClass[1]), 3), cex=1.2)
-  text(30, 85, names(cm$byClass[2]), cex=1.2, font=2)
-  text(30, 70, round(as.numeric(cm$byClass[2]), 3), cex=1.2)
-  text(50, 85, names(cm$byClass[5]), cex=1.2, font=2)
-  text(50, 70, round(as.numeric(cm$byClass[5]), 3), cex=1.2)
-  text(70, 85, names(cm$byClass[6]), cex=1.2, font=2)
-  text(70, 70, round(as.numeric(cm$byClass[6]), 3), cex=1.2)
-  #text(90, 85, names(cm$byClass[7]), cex=1.2, font=2)
-  #text(90, 70, round(as.numeric(cm$byClass[7]), 3), cex=1.2)
-  text(90, 85, "Error Good", cex=1.2, font=2)
-  text(90, 70, round(as.numeric(cm$table[1,2]), 0), cex=1.2)
-  
-  
+  text(10, 65, names(cm$overall[1]), cex=1.5, font=2)
+  text(10, 35, round(as.numeric(cm$overall[1]), 3), cex=1.4)
+  text(30, 65, names(cm$byClass[1]), cex=1.2, font=2)
+  text(30, 35, round(as.numeric(cm$byClass[1]), 3), cex=1.2)
+  text(50, 65, names(cm$byClass[2]), cex=1.2, font=2)
+  text(50, 35, round(as.numeric(cm$byClass[2]), 3), cex=1.2)
+  text(70, 65, names(cm$byClass[9]), cex=1.2, font=2)
+  text(70, 35, round(as.numeric(cm$byClass[9]), 3), cex=1.2)
+  text(90, 65, "Bad misclassif.", cex=1.2, font=2)
+  text(90, 35, round(as.numeric(cm$table[2,1]), 0), cex=1.2)
   
   
   # add in the accuracy information 
-  text(30, 35, names(cm$overall[1]), cex=1.5, font=2)
-  text(30, 20, round(as.numeric(cm$overall[1]), 3), cex=1.4)
-  text(70, 35, names(cm$overall[2]), cex=1.5, font=2)
-  text(70, 20, round(as.numeric(cm$overall[2]), 3), cex=1.4)
+  #text(30, 35, names(cm$overall[1]), cex=1.5, font=2)
+  #text(30, 20, round(as.numeric(cm$overall[1]), 3), cex=1.4)
+  #text(70, 35, names(cm$overall[2]), cex=1.5, font=2)
+  #text(70, 20, round(as.numeric(cm$overall[2]), 3), cex=1.4)
 } 

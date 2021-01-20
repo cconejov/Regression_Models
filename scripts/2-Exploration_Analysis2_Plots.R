@@ -74,6 +74,13 @@ ggplot(trainData,aes(x=NUM_CREDITS,fill= RESPONSE)) +
   scale_fill_manual(values=c("red3", "steelblue")) +
   theme_minimal()
 
+ggplot(trainData, aes(x=NUM_CREDITS, fill = RESPONSE)) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = scales::percent)  +
+  labs(title = "Distribution of Number of Credits") +
+  scale_fill_manual(values=c("red3", "steelblue")) +
+  theme_minimal()
+
 
 #########################
 ## 1.b Applicants Economic background
