@@ -5,11 +5,14 @@
 load("rda/df.rda")
 #load('rda/dfLightVersion.rda')
 
-# loaf the variable iteraction 
-load("rda/models_AIC_LRT.rda")
+# load the variable iNteraction 
+#load("rda/models_AIC_LRT.rda")
+
+# LOAD TRAINEND MODELS
+load('rda/calibrated_models.rda')
+
 
 # load functions
-
 source('functions/draw_functions.R')
 
 
@@ -21,8 +24,6 @@ library(dplyr)
 ##################################
 # 2.  SPLIT TRAIN AND TESTING
 ##################################
-
-
 set.seed(42)
 trainRowNos <- createDataPartition(df$RESPONSE, p = 0.8, list = FALSE)
 trainData <- df[trainRowNos,]
@@ -43,6 +44,7 @@ names(trainData)
 
 ##################################
 # DEFINE THE VARIABLES AND INTERACTIONS USING AIC/LRT
+# no necessary to execute
 ##################################
 
 # USE ALL THE TRAINDATA FOR FIXING AIC/LRT
@@ -113,14 +115,21 @@ model1_baseline <- train(RESPONSE ~ .,
 ##*******************************
 ## Model 2: Ridge
 ##*******************************
+ctrl <- trainControl(classProbs = TRUE,
+                     method = "cv",
+                     number = 5,
+                     summaryFunction = twoClassSummary)
+
 
 model2_ridge <- train(RESPONSE ~ ., 
                method = "glmnet",
                #tuneGrid = expand.grid(alpha = seq(0, 1, 0.1), lambda = seq(0, .1, 0.02)),
-               metric = "Kappa",
+               metric = "Sens",
                data = trainData,
                preProcess = c("center", "scale"),
                trControl = ctrl)
+print(model2_ridge)
+
 
 ##*******************************
 ## Model 3: Fitted with AIC (DID CONVERGE)
@@ -208,9 +217,38 @@ save(calibrated_models, file = "rda/calibrated_models.rda")
 ## predicting power training set
 ###############################################
 
+model1_baseline <- calibrated_models[[1]]
+model2_ridge <- calibrated_models[[2]]
+model4_LRT <- calibrated_models[[3]]
+
+
 ## importance of each variable
 model1_baseline_imp <- varImp(model1_baseline, scale = F)
-plot(model1_baseline_imp, scales = list(y = list(cex = .95)), main = "Feature importanve varibles")
+plot(model1_baseline_imp, scales = list(y = list(cex = .95)), 
+     main = "Feature importance varibles",
+     yaxt='n', ann=FALSE
+     )
+
+detail_Imp <- model1_baseline_imp$importance
+variable <- as.character(rownames(detail_Imp))
+Overall <- as.numeric(detail_Imp$Overall)
+detail_Imp2 <- as.data.frame(cbind(variable, Overall))
+detail_Imp2$Overall <- as.numeric(detail_Imp2$Overall) 
+ggplot(detail_Imp2, aes(x=reorder(variable,Overall), 
+                                           y=Overall,
+                                           fill=Overall))+ 
+  geom_bar(stat="identity", position="dodge")+ coord_flip()+
+  ylab("Variable Importance")+
+  xlab("")+
+  ggtitle("Information Value Summary")+
+  guides(fill=F)+
+  scale_fill_gradient(low="red", high="blue")
+
+
+
+## importance of each variable
+model4_LRT_imp <- varImp(model4_LRT, scale = F)
+plot(model4_LRT_imp, scales = list(y = list(cex = .95)), main = "Feature importance variables (LRT model)")
 
 
 ##*******************************
@@ -246,13 +284,13 @@ model4_LRT.Pred.train <- predict(model4_LRT, trainData)
 cm.model4_LRT.train <- confusionMatrix(model4_LRT.Pred.train, trainData$RESPONSE)
 
 
-
+source('functions/draw_functions.R')
 draw_confusion_matrix(cm = cm.model1_baseline.train, Class1 = "Bad", Class2 = "Good",title_def = 'Confusion Matrix: Baseline')
 draw_confusion_matrix(cm = cm.model2_ridge.train, Class1 = "Bad", Class2 = "Good",title_def = 'Confusion Matrix: Ridge')
 draw_confusion_matrix(cm = cm.model4_LRT.train, Class1 = "Bad", Class2 = "Good",title_def = 'Confusion Matrix: Subset LRT')
 
 
-
+cm.model1_baseline.train$byClass[9]
 
 ##################################
 # TESTING
